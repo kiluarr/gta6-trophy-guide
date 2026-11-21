@@ -1,52 +1,16 @@
-// A plain checklist of the 55 trophies: tick one off and it stays ticked (localStorage); export and import the ticks.
-const KEY = 'gta6-trophy-checklist';
-const rows = document.getElementById('rows');
-const grade = document.getElementById('grade');
-let earned = new Set(JSON.parse(localStorage.getItem(KEY) ?? '[]'));
-const doc = await (await fetch('data/trophies.json')).json();
+// app.js — entry point. The real work lives in js/main.js; this file only
+// starts it once the document is ready.
+import { boot } from './js/main.js';
 
-function save() {
-  localStorage.setItem(KEY, JSON.stringify([...earned]));
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', () => boot().catch(showLoadError));
+} else {
+  boot().catch(showLoadError);
 }
 
-function render() {
-  rows.replaceChildren();
-  for (const t of doc.trophies) {
-    if (grade.value !== 'all' && t.grade !== grade.value) continue;
-    const tr = document.createElement('tr');
-    const box = document.createElement('input');
-    box.type = 'checkbox';
-    box.checked = earned.has(t.name);
-    box.addEventListener('change', () => {
-      if (box.checked) earned.add(t.name);
-      else earned.delete(t.name);
-      save();
-      render();
-    });
-    const cells = [box, `${t.name}\n${t.description}`, t.grade, t.guide];
-    for (const c of cells) {
-      const td = document.createElement('td');
-      if (typeof c === 'string') td.textContent = c;
-      else td.append(c);
-      tr.append(td);
-    }
-    rows.append(tr);
-  }
-  document.getElementById('progress').textContent = `${earned.size} of ${doc.trophies.length} earned`;
+function showLoadError(error) {
+  const pane = document.getElementById('detail-pane');
+  if (pane) pane.textContent = `Could not load the trophy data: ${error.message}`;
+  // eslint-disable-next-line no-console
+  console.error(error);
 }
-
-document.getElementById('export').addEventListener('click', () => {
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(new Blob([JSON.stringify([...earned])], { type: 'application/json' }));
-  a.download = 'trophy-progress.json';
-  a.click();
-});
-document.getElementById('import').addEventListener('change', async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  earned = new Set(JSON.parse(await file.text()));
-  save();
-  render();
-});
-grade.addEventListener('change', render);
-render();

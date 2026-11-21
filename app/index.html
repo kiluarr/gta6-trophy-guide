@@ -4,105 +4,123 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Leonida Legend — GTA VI Trophy Guide &amp; Tracker</title>
-<meta name="description" content="Offline guide and tracker for all 55 PlayStation 5 trophies of Grand Theft Auto VI: official names, descriptions and grades, a roadmap to the platinum, missable warnings, and a guide to each trophy that cites its sources.">
-<link rel="stylesheet" href="style.css">
+<meta name="description" content="Offline checklist and guide for all 55 Grand Theft Auto VI trophies on PlayStation 5: roadmap, missables, filters, spoiler-safe tracking.">
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-<header class="top">
-  <div class="brand">
-    <div class="mark" aria-hidden="true">LL</div>
-    <div class="brand-text">
-      <h1>Leonida Legend</h1>
-      <p class="sub">GTA VI &middot; PlayStation 5 trophy guide &amp; tracker &mdash; all 55 trophies, works offline</p>
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="brand">
+      <div class="brand-mark" aria-hidden="true">LL</div>
+      <div>
+        <h1>Leonida Legend</h1>
+        <p class="tagline">GTA VI trophy guide &amp; tracker &middot; 55 trophies &middot; PS5 &middot; works fully offline</p>
+      </div>
     </div>
-  </div>
-  <div class="progress" id="progressBox" aria-live="polite">
-    <div class="progress-count"><strong id="earnedCount">0</strong><span> / 55 earned</span></div>
-    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
-    <p class="progress-grades" id="gradeCounts"></p>
+    <div class="progress-wrap" id="progress-wrap" aria-live="polite">
+      <div class="progress-numbers"><span id="progress-count">0 / 55</span><span id="progress-pct">0%</span></div>
+      <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+      <div class="progress-grades" id="progress-grades"></div>
+    </div>
   </div>
 </header>
 
-<nav class="tabs" aria-label="Views">
-  <div class="tab-buttons" role="tablist">
-    <button type="button" class="tab active" data-view="checklist" role="tab" aria-selected="true">Checklist</button>
-    <button type="button" class="tab" data-view="roadmap" role="tab" aria-selected="false">Roadmap to platinum</button>
-    <button type="button" class="tab" data-view="missables" role="tab" aria-selected="false">Missables</button>
-  </div>
-  <div class="tab-tools">
-    <label class="spoiler-toggle"><input type="checkbox" id="spoilerToggle"> Hide story spoilers</label>
-    <button type="button" id="exportBtn" class="btn">Export progress</button>
-    <label class="btn import-btn">Import progress <input type="file" id="importFile" accept="application/json,.json" hidden></label>
-  </div>
-</nav>
+<main class="layout">
+  <section class="panel nextup-panel" id="nextup-panel">
+    <span class="panel-label">Next up</span>
+    <button class="nextup-chip" id="nextup-chip" type="button">Pick your first trophy below</button>
+    <span class="nextup-hint" id="nextup-hint"></span>
+  </section>
 
-<main>
-  <section id="view-checklist" class="view" aria-label="Trophy checklist">
-    <div class="controls">
-      <label class="search">Search <input type="search" id="searchBox" placeholder="Trophy name or description&hellip;" autocomplete="off"></label>
-      <label>Kind
-        <select id="kindFilter">
-          <option value="all">All kinds</option>
-          <option value="story">Story</option>
-          <option value="side">Side quests</option>
-          <option value="collectible">Collectibles</option>
-          <option value="activity">Activities</option>
-          <option value="robbery">Robberies</option>
-          <option value="exploration">Exploration</option>
-          <option value="money">Money</option>
-          <option value="oddjob">Odd jobs</option>
-          <option value="platinum">Platinum</option>
-          <option value="completion">100% completion</option>
-        </select>
-      </label>
-      <label>Grade
-        <select id="gradeFilter">
-          <option value="all">All grades</option>
-          <option value="platinum">Platinum</option>
-          <option value="gold">Gold</option>
-          <option value="silver">Silver</option>
-          <option value="bronze">Bronze</option>
-        </select>
-      </label>
-      <label>Status
-        <select id="statusFilter">
-          <option value="all">Earned &amp; remaining</option>
-          <option value="earned">Earned only</option>
-          <option value="remaining">Remaining only</option>
-        </select>
-      </label>
-      <label class="missable-only"><input type="checkbox" id="missableOnly"> Missable only</label>
-      <span class="result-count" id="resultCount"></span>
+  <nav class="tabs" aria-label="Views">
+    <button type="button" class="tab is-active" data-view="checklist">Checklist</button>
+    <button type="button" class="tab" data-view="roadmap">Roadmap to platinum</button>
+    <button type="button" class="tab" data-view="missables">Missables</button>
+  </nav>
+
+  <section class="panel toolbar" id="toolbar" aria-label="Filters">
+    <input type="search" id="search" placeholder="Search trophies…" aria-label="Search trophies" autocomplete="off">
+    <select id="kind-filter" aria-label="Filter by kind">
+      <option value="all">All kinds</option>
+      <option value="story">Story</option>
+      <option value="activities">Activities</option>
+      <option value="collectibles">Collectibles</option>
+      <option value="robberies">Robberies</option>
+      <option value="money">Money</option>
+      <option value="world">World</option>
+      <option value="misc">Misc</option>
+    </select>
+    <select id="grade-filter" aria-label="Filter by grade">
+      <option value="all">All grades</option>
+      <option value="platinum">Platinum</option>
+      <option value="gold">Gold</option>
+      <option value="silver">Silver</option>
+      <option value="bronze">Bronze</option>
+    </select>
+    <select id="status-filter" aria-label="Filter by status">
+      <option value="all">Earned + remaining</option>
+      <option value="earned">Earned only</option>
+      <option value="remaining">Remaining only</option>
+    </select>
+    <label class="check"><input type="checkbox" id="missable-only"> Missable only</label>
+    <label class="check spoiler-check"><input type="checkbox" id="spoiler-toggle" checked> Hide story spoilers</label>
+    <div class="tool-buttons">
+      <button type="button" id="export-btn">Export progress</button>
+      <button type="button" id="import-btn">Import progress</button>
+      <input type="file" id="import-file" accept="application/json,.json" hidden>
+      <button type="button" id="reset-btn" class="danger">Reset</button>
     </div>
-    <div class="nextup" id="nextUp"></div>
-    <div class="layout">
-      <div class="list-col">
-        <ul class="trophy-list" id="trophyList"></ul>
-        <p class="empty" id="emptyMsg" hidden>No trophies match these filters. Clear the search or widen a filter.</p>
+  </section>
+
+  <div class="content">
+    <section class="trophy-column" id="checklist-view" aria-label="Trophy checklist">
+      <p class="list-meta" id="list-meta"></p>
+      <ul class="trophy-list" id="trophy-list"></ul>
+    </section>
+
+    <section class="roadmap-view" id="roadmap-view" hidden aria-label="Roadmap to platinum">
+      <h2>Roadmap to platinum</h2>
+      <p class="roadmap-intro">One playthrough, about 200 hours, difficulty 4/10. No online trophies, no mission replay, and cheats disable trophies and saving — so play it clean.</p>
+      <ol class="roadmap-steps">
+        <li>
+          <h3>Stage 1 — Play the story <span class="stage-time">60–80 hours</span></h3>
+          <p>Finish all 5 chapters and the final mission. That alone pops 13 story trophies plus both golds' groundwork. Two things matter while you play: meditate with Lucia on the Chapter 1 balcony (see Missables — it can be lost), and scan vehicles and study animals whenever you pass them, because the 100% checklist counts them later.</p>
+          <p>Keep a manual save at the start of every chapter. The game gives you 15 manual slots and 1 autosave, and there is no mission replay.</p>
+        </li>
+        <li>
+          <h3>Stage 2 — The 100% checklist <span class="stage-time">~100 hours</span></h3>
+          <p>After the story, open Progress &gt; Stats &gt; 100% Completion. It is forgiving — closer to 60% true completion. You need any 100 optional missions, 200 of 277 vehicles scanned, 100 of 255 animals studied, 70 of 80 challenges, all 8 large bank jobs, all 39 gang operations, all 15 target decks, 300 stunts, every drone race and every shooting-range gold. Everything on it stays available in free-roam.</p>
+        </li>
+        <li>
+          <h3>Stage 3 — Cleanup <span class="stage-time">~10 hours</span></h3>
+          <p>Finish the 8 Strangers &amp; Freaks strands, sweep up leftover collectibles and activities, then check the five unsolved trophies. Five trophies had no confirmed unlock in any published guide when this guide was written — they are flagged UNSOLVED in the list rather than guessed at.</p>
+        </li>
+      </ol>
+      <p class="roadmap-foot">Sources: PowerPyx trophy guide &amp; roadmap, PlanetGTA6 trophy list. Difficulty and time estimates are PowerPyx's.</p>
+    </section>
+
+    <section class="missables-view" id="missables-view" hidden aria-label="Missable trophies">
+      <h2>Missables</h2>
+      <div class="missable-card">
+        <p class="missable-flag">Only 1 missable trophy</p>
+        <h3>Positive Mental Attitude</h3>
+        <p class="missable-desc">Meditate at every spot across Leonida.</p>
+        <p>There are 18 meditation spots across 10 locations, and each counts twice if both Jason and Lucia meditate there. The catch is the very first one: during Chapter 1, after the mission Down to Earth, talk to Lucia in the kitchen in the morning. She walks out to the balcony to meditate. Follow her and choose Accept. That meditation is gone for good after Chapter 1, and it is still unconfirmed whether the trophy needs it — so do it while you can.</p>
+        <p>Everything else is safe: every other trophy is confirmed obtainable after the story in free-roam, and the five unsolved trophies have no confirmed missable status. The real safety net is manual saves — 15 slots, one at the start of each chapter.</p>
       </div>
-      <aside class="detail-col" id="detailPane" aria-label="Trophy guide"></aside>
-    </div>
-  </section>
+      <ul class="trophy-list" id="missable-list"></ul>
+    </section>
 
-  <section id="view-roadmap" class="view" hidden aria-label="Roadmap to the platinum">
-    <div class="roadmap-intro" id="roadmapIntro"></div>
-    <ol class="roadmap-steps" id="roadmapSteps"></ol>
-    <div class="roadmap-notes" id="roadmapNotes"></div>
-  </section>
+    <aside class="detail-pane" id="detail-pane" aria-label="Trophy guide" aria-live="polite">
+      <p class="detail-empty">Select a trophy to read its guide and sources.</p>
+    </aside>
+  </div>
 
-  <section id="view-missables" class="view" hidden aria-label="Missable trophies">
-    <div id="missableList"></div>
-    <div class="safe-note" id="safeNote"></div>
-  </section>
+  <footer class="foot">
+    <p>Fan-made guide. Not affiliated with Rockstar Games. No official artwork or logos are used. Trophy names and descriptions are PlayStation's official list; guides are written for this page and cite their sources beside each trophy.</p>
+    <p>Data checked 2026-11-21 against PlanetGTA6, Exophase, PSNProfiles and PowerPyx. Progress is saved only in your browser.</p>
+  </footer>
 </main>
-
-<footer>
-  <p><strong>Sources.</strong> Trophy names, descriptions and grades are the official PlayStation 5 list as published by Exophase and cross-checked with PSNProfiles and TrueAchievements (18 Nov 2026). Methods, times and the roadmap follow PowerPyx&rsquo;s GTA 6 Trophy Guide &amp; Roadmap, with counts from PSNProfiles and GameMapa. Every trophy&rsquo;s guide names its sources beside it.</p>
-  <p><strong>Honest where the game is new.</strong> GTA VI released 19 Nov 2026. Where no published guide has pinned a location or trigger yet, the guide says so instead of guessing — check the cited guide as players map it. Five trophies are still unsolved in every published guide; they are marked as such.</p>
-  <p><strong>Offline.</strong> This guide is static files only. Your progress lives in this browser (localStorage); nothing is sent anywhere. Export it to keep a backup.</p>
-  <p class="fineprint">An unofficial fan guide. Grand Theft Auto and GTA are trademarks of Take-Two Interactive; this guide uses no Rockstar artwork, logos or game screenshots. Trophy data: <a href="https://www.exophase.com/game/grand-theft-auto-vi-psn/trophies/">Exophase</a> · <a href="https://psnprofiles.com/trophies/43531-grand-theft-auto-vi">PSNProfiles</a> · <a href="https://www.powerpyx.com/gta-6-grand-theft-auto-vI-trophy-guide-roadmap/">PowerPyx</a> · <a href="https://www.planetgta6.com/en/gta-6-trophies/">PlanetGTA6</a></p>
-</footer>
-
-<script type="module" src="js/main.js"></script>
+<script type="module" src="./app.js"></script>
 </body>
 </html>

@@ -1,6 +1,19 @@
-// Views: everything the reader sees — the checklist rows, the guide pane, the
-// roadmap and the missables page. Built with plain DOM calls, no framework.
-import { KIND_LABELS, gradeCounts, nextUp } from './filters.js';
+// views.js — everything the reader sees, built from the data and the state.
+// Spoiler safety lives here too: rows, the Next up chip and the detail pane
+// all render through displayName / displayDescription / displayGuide from
+// filters.js, never the raw fields.
+
+import {
+  displayDescription, displayGuide, displayName, gradeCounts, isMasked,
+  nextUp, nextUpHint,
+} from './filters.js';
+import { counterValue, isEarned } from './store.js';
+
+const GRADE_LABEL = { platinum: 'Platinum', gold: 'Gold', silver: 'Silver', bronze: 'Bronze' };
+const KIND_LABEL = {
+  story: 'Story', activities: 'Activities', collectibles: 'Collectibles',
+  robberies: 'Robberies', money: 'Money', world: 'World', misc: 'Misc',
+};
 
 function el(tag, className, text) {
   const node = document.createElement(tag);
@@ -9,256 +22,186 @@ function el(tag, className, text) {
   return node;
 }
 
-function gradeChip(grade) {
-  return el('span', `grade-chip grade-${grade}`, grade);
+function gradeBadge(grade) {
+  return el('span', `grade-badge grade-${grade}`, GRADE_LABEL[grade]);
 }
 
-function kindTag(trophy) {
-  return el('span', 'tag', KIND_LABELS[trophy.kind] ?? trophy.kind);
+export function renderProgress(trophies, state) {
+  const earned = state.earned.length;
+  const total = trophies.length;
+  const pct = total === 0 ? 0 : Math.round((earned / total) * 100);
+  document.getElementById('progress-count').textContent = `${earned} / ${total} earned`;
+  document.getElementById('progress-pct').textContent = `${pct}%`;
+  document.getElementById('progress-fill').style.width = `${pct}%`;
+  const counts = gradeCounts(trophies, state);
+  const wrap = document.getElementById('progress-grades');
+  wrap.textContent = '';
+  for (const grade of ['platinum', 'gold', 'silver', 'bronze']) {
+    const [got, of] = counts[grade];
+    wrap.appendChild(el('span', 'grade-count', `${GRADE_LABEL[grade]} ${got}/${of}`));
+  }
 }
 
-export function renderProgress(trophies, progress) {
-  const earned = progress.earned.size;
-  document.getElementById('earnedCount').textContent = String(earned);
-  document.getElementById('progressFill').style.width = `${(earned / trophies.length) * 100}%`;
-  const counts = gradeCounts(trophies, progress);
-  document.getElementById('gradeCounts').innerHTML =
-    `Platinum <b>${counts.platinum.earned}/1</b> · Gold <b>${counts.gold.earned}/2</b> · ` +
-    `Silver <b>${counts.silver.earned}/6</b> · Bronze <b>${counts.bronze.earned}/46</b>`;
-}
-
-export function renderNextUp(trophies, progress, spoiler, onSelect) {
-  const box = document.getElementById('nextUp');
-  box.replaceChildren();
-  const upcoming = nextUp(trophies, progress, 3);
-  if (progress.earned.size >= trophies.length) {
-    box.append(el('h2', null, 'Platinum earned — Vice Got a Price!'));
-    box.append(el('p', null, 'Every trophy is ticked. You are a Leonida Legend.'));
+export function renderNextUp(trophies, state, onSelect) {
+  const chip = document.getElementById('nextup-chip');
+  const hint = document.getElementById('nextup-hint');
+  const pick = nextUp(trophies, state);
+  if (!pick) {
+    chip.textContent = 'Platinum earned — every trophy is yours.';
+    hint.textContent = '';
+    chip.onclick = null;
     return;
   }
-  box.append(el('h2', null, 'Next up'));
-  box.append(el('p', null, 'The next trophies on the roadmap, in order — finish the story step first, then the checklist.'));
-  const chips = el('div', 'next-chips');
-  for (const t of upcoming) {
-    const masked = spoiler && t.story && !progress.earned.has(t.id);
-    const chip = el('button', 'next-chip', masked ? 'Hidden story trophy' : `${t.missable ? '⚠ ' : ''}${t.name}`);
-    chip.type = 'button';
-    chip.addEventListener('click', () => onSelect(t.id));
-    chips.append(chip);
-  }
-  box.append(chips);
+  // Masked by the same rule as the list: a hidden story trophy never shows
+  // its name here, even as the suggested next trophy.
+  chip.textContent = isMasked(pick, state)
+    ? 'Hidden story trophy — keep playing the story'
+    : displayName(pick, state);
+  hint.textContent = nextUpHint(pick, state);
+  chip.onclick = () => onSelect(pick.id);
 }
 
-// One checklist row. Spoiler mode masks story trophies until they are earned.
-function trophyRow(trophy, progress, spoiler, selectedId, callbacks) {
-  const li = el('li', `trophy${progress.earned.has(trophy.id) ? ' earned' : ''}${selectedId === trophy.id ? ' selected' : ''}`);
-  const box = document.createElement('input');
-  box.type = 'checkbox';
-  box.checked = progress.earned.has(trophy.id);
-  box.setAttribute('aria-label', `Earned: ${trophy.name}`);
-  box.addEventListener('change', () => callbacks.onToggle(trophy.id, box.checked));
-  li.append(box);
+function trophyRow(trophy, state, onSelect, onToggleEarned) {
+  const li = el('li', 'trophy-row');
+  if (state.selectedId === trophy.id) li.classList.add('is-selected');
+  if (isEarned(state, trophy.id)) li.classList.add('is-earned');
+  if (isMasked(trophy, state)) li.classList.add('is-masked');
 
-  const body = el('div');
-  const spoiled = spoiler && trophy.story && !progress.earned.has(trophy.id);
-  if (spoiled) li.classList.add('spoiled');
-  body.append(el('div', 'trophy-name', spoiled ? 'Hidden story trophy' : trophy.name));
-  body.append(el('div', 'trophy-desc', spoiled ? 'Complete the story to reveal this trophy.' : trophy.description));
-  if (spoiled) body.append(el('div', 'spoiler-note', 'Hidden by the spoiler setting — earn it (or switch spoilers off) to reveal it.'));
-  const tags = el('div', 'trophy-tags');
-  tags.append(kindTag(trophy));
-  if (trophy.missable) tags.append(el('span', 'tag missable', '⚠ Missable'));
-  if (trophy.hidden) tags.append(el('span', 'tag hidden-flag', 'Hidden on PSN'));
-  if (trophy.target) tags.append(el('span', 'tag target', `PSN target: ${trophy.target.toLocaleString()} ${trophy.targetLabel ?? ''}`.trim()));
-  body.append(tags);
-  const guideBtn = el('button', 'trophy-guide-btn', 'Read the guide →');
-  guideBtn.type = 'button';
-  guideBtn.addEventListener('click', () => callbacks.onSelect(trophy.id));
-  body.append(guideBtn);
-  li.append(body);
-  li.append(gradeChip(trophy.grade));
+  const check = el('input', 'row-check');
+  check.type = 'checkbox';
+  check.checked = isEarned(state, trophy.id);
+  check.setAttribute('aria-label', `Mark ${displayName(trophy, state)} earned`);
+  check.addEventListener('click', (event) => {
+    event.stopPropagation();
+    onToggleEarned(trophy.id);
+  });
+  li.appendChild(check);
+
+  const body = el('div', 'row-body');
+  const head = el('div', 'row-head');
+  head.appendChild(gradeBadge(trophy.grade));
+  head.appendChild(el('span', 'row-name', displayName(trophy, state)));
+  if (trophy.missable) head.appendChild(el('span', 'tag tag-missable', 'MISSABLE'));
+  if (trophy.unsolved) head.appendChild(el('span', 'tag tag-unsolved', 'UNSOLVED'));
+  if (trophy.story) head.appendChild(el('span', 'tag tag-story', 'STORY'));
+  body.appendChild(head);
+  body.appendChild(el('p', 'row-desc', displayDescription(trophy, state)));
+  const meta = el('div', 'row-meta');
+  meta.appendChild(el('span', 'row-kind', KIND_LABEL[trophy.kind] || trophy.kind));
+  if (trophy.target) {
+    meta.appendChild(el('span', 'row-counter',
+      `${counterValue(state, trophy.id)} / ${trophy.target} ${trophy.targetUnit || ''}`.trim()));
+  }
+  body.appendChild(meta);
+  li.appendChild(body);
+
+  li.addEventListener('click', () => onSelect(trophy.id));
   return li;
 }
 
-export function renderList(trophies, progress, filters, spoiler, selectedId, callbacks) {
-  const list = document.getElementById('trophyList');
-  list.replaceChildren();
-  for (const t of trophies) list.append(trophyRow(t, progress, spoiler, selectedId, callbacks));
-  document.getElementById('emptyMsg').hidden = trophies.length > 0;
-  document.getElementById('resultCount').textContent =
-    `${trophies.length} of 55 trophies shown · ${progress.earned.size} earned`;
+export function renderList(trophies, state, filters, visible, onSelect, onToggleEarned) {
+  const list = document.getElementById('trophy-list');
+  list.textContent = '';
+  for (const t of visible) list.appendChild(trophyRow(t, state, onSelect, onToggleEarned));
+  const meta = document.getElementById('list-meta');
+  const earned = visible.filter((t) => isEarned(state, t.id)).length;
+  meta.textContent = visible.length === 0
+    ? 'No trophies match these filters.'
+    : `Showing ${visible.length} of ${trophies.length} trophies · ${earned} earned in this view`;
 }
 
-export function renderDetail(trophy, progress, spoiler, callbacks) {
-  const pane = document.getElementById('detailPane');
-  pane.replaceChildren();
+export function renderMissableList(trophies, state, onSelect, onToggleEarned) {
+  const list = document.getElementById('missable-list');
+  list.textContent = '';
+  for (const t of trophies.filter((x) => x.missable)) {
+    list.appendChild(trophyRow(t, state, onSelect, onToggleEarned));
+  }
+}
+
+export function renderDetail(trophy, state, callbacks) {
+  const pane = document.getElementById('detail-pane');
+  pane.textContent = '';
   if (!trophy) {
-    const empty = el('div', 'detail-empty');
-    empty.append(el('h2', null, 'Pick a trophy to read its guide'));
-    empty.append(el('p', null, 'Every trophy has a guide in this tracker’s own words, built from its official description — with the sources it draws on, so you can check each fact. Click any trophy in the list, or a “Next up” chip above.'));
-    empty.append(el('p', null, 'Start with the one flagged missable: Positive Mental Attitude. It is the only trophy the published guides say you can lose.'));
-    pane.append(empty);
+    pane.appendChild(el('p', 'detail-empty', 'Select a trophy to read its guide and sources.'));
     return;
   }
-  const spoiled = spoiler && trophy.story && !progress.earned.has(trophy.id);
-  pane.append(el('h2', null, spoiled ? 'Hidden story trophy' : trophy.name));
-  pane.append(el('p', 'detail-desc', spoiled ? 'Hidden by the spoiler setting until earned.' : trophy.description));
-  const meta = el('div', 'detail-meta');
-  meta.append(gradeChip(trophy.grade));
-  meta.append(kindTag(trophy));
-  if (trophy.missable) meta.append(el('span', 'tag missable', '⚠ Missable'));
-  if (trophy.hidden) meta.append(el('span', 'tag hidden-flag', 'Hidden on PSN'));
-  meta.append(el('span', 'tag', `Roadmap step ${trophy.roadmap}`));
-  pane.append(meta);
+  const masked = isMasked(trophy, state);
 
-  if (trophy.missable) {
-    pane.append(el('div', 'missable-banner', '⚠ Missable — read this before you pass Chapter 1. The full warning is on the Missables tab.'));
-  }
-  if (!spoiled) {
-    pane.append(el('h3', null, 'Guide'));
-    pane.append(el('p', 'detail-guide', trophy.guide));
-    pane.append(el('h3', null, 'Sources'));
-    const sources = el('ul', 'source-list');
-    for (const s of trophy.sources) {
-      const item = el('li');
-      const link = document.createElement('a');
-      link.href = s.url;
-      link.target = '_blank';
-      link.rel = 'noopener';
-      link.textContent = s.name;
-      item.append(link);
-      sources.append(item);
-    }
-    pane.append(sources);
-    if (trophy.target) {
-      pane.append(el('h3', null, 'Your count'));
-      const counter = el('div', 'counter');
-      const minus = el('button', null, '−');
-      const plus = el('button', null, '+');
-      const value = el('span', 'counter-value', `${progress.counters[trophy.id] ?? 0} / ${trophy.target.toLocaleString()}`);
-      minus.type = 'button';
-      plus.type = 'button';
-      minus.setAttribute('aria-label', 'Decrease count');
-      plus.setAttribute('aria-label', 'Increase count');
-      minus.addEventListener('click', () => callbacks.onCounter(trophy.id, -1));
-      plus.addEventListener('click', () => callbacks.onCounter(trophy.id, 1));
-      counter.append(minus, value, plus, el('span', 'counter-note', `${trophy.targetLabel ?? 'progress'} — PSN tracks this target`));
-      pane.append(counter);
-    }
-    pane.append(el('p', 'detail-empty', 'Official name and description as PlayStation publishes them; the guide above is this tracker’s own words.'));
+  const head = el('div', 'detail-head');
+  head.appendChild(gradeBadge(trophy.grade));
+  head.appendChild(el('h2', 'detail-name', displayName(trophy, state)));
+  pane.appendChild(head);
+
+  const tags = el('div', 'detail-tags');
+  tags.appendChild(el('span', 'tag', KIND_LABEL[trophy.kind] || trophy.kind));
+  if (trophy.story) tags.appendChild(el('span', 'tag tag-story', 'STORY · HIDDEN'));
+  if (trophy.missable) tags.appendChild(el('span', 'tag tag-missable', 'MISSABLE'));
+  if (trophy.unsolved) tags.appendChild(el('span', 'tag tag-unsolved', 'UNSOLVED'));
+  pane.appendChild(tags);
+
+  pane.appendChild(el('p', 'detail-desc', displayDescription(trophy, state)));
+
+  if (masked) {
+    const note = el('p', 'detail-locked',
+      'Spoilers are on, so this story trophy stays hidden until you earn it. Toggle “Hide story spoilers” off to reveal its name and guide.');
+    pane.appendChild(note);
   } else {
-    pane.append(el('p', 'detail-empty', 'Earn this trophy — or switch the spoiler setting off — to read its guide and sources.'));
-  }
-}
-
-const ROADMAP_STEPS = [
-  {
-    step: 1,
-    time: '60–80 hours',
-    title: 'Play the story — and mind the one missable',
-    body: 'Finish the five chapters and take the optional missions as they appear (purple icons, plus black icons with pink letters). Along the way, scan every new vehicle with the WAiNK app and study animals through your binoculars — the 100% checklist already counts them. Keep a manual save at the start and end of every chapter: there is no mission replay.',
-    bullets: [
-      'Do the Chapter 1 balcony meditation the moment Lucia offers it (Positive Mental Attitude) — see the Missables tab.',
-      'Sample the 9 activity types for Master of None as you meet them.',
-      'Keep cheats OFF: they disable trophies and saving, and only unlock after the story.',
-      'Avoid the Irredeemable criminal profile — it is permanent and makes the police more aggressive.',
-    ],
-  },
-  {
-    step: 2,
-    time: 'About 100 hours',
-    title: 'The 100% Completion checklist',
-    body: 'After the credits, Progress > Stats gains a 100% Completion entry — that checklist is the A Long Road trophy. It is closer to 60% true completion: most side quests are not required and collectibles only partly. But every robbery, underwater discovery, shooting range, drone race and Bret quest is required, and you need 70 of the 80 challenges, so you can skip the hardest ten.',
-    bullets: [
-      '300 stunts across jumps, bridge flyunders, knife flights and base jumps (the trophy pops at 250).',
-      'Gold in all 42 Shooting Range challenges; all 42 drone time trials.',
-      'All 33 underwater discoveries; all 15 of Bret’s target decks.',
-      '200 of 277 base-model vehicles scanned, 100 of 255 animals studied, 50 of 66 weapons.',
-      'Bank vaults, armored trucks, jewelry stores and one illegal operation per gang.',
-    ],
-  },
-  {
-    step: 3,
-    time: 'About 10 hours',
-    title: 'Strangers & Freaks and cleanup',
-    body: 'The checklist does not ask for the stranger strands, so they are usually what is left afterwards, together with any stray trophies that did not pop on their own. Every quest giver tied to a trophy comes back after the ending, and the whole map stays open in free-roam.',
-    bullets: [
-      'Finish 8 stranger mission strands (Strangers & Freaks).',
-      'Close out the character strands: Andy (Lucia-only), Tyrone and Bret (Jason-only).',
-      'Sweep the last collectibles — cards, WAiNK scans, meditation spots — and the platinum pops with your final trophy.',
-    ],
-  },
-];
-
-export function renderRoadmap(trophies, progress) {
-  const intro = document.getElementById('roadmapIntro');
-  intro.replaceChildren();
-  intro.append(el('h2', null, 'Roadmap to the platinum'));
-  intro.append(el('p', null, 'Three steps, in order, after PowerPyx’s trophy roadmap. The story is 60–80 hours; the checklist is the long grind; cleanup is short. One playthrough is enough, everything is offline, and there are no online trophies.'));
-  const facts = el('div', 'roadmap-facts');
-  for (const fact of ['~200 hours to platinum', 'Difficulty 4/10 (PowerPyx)', '1 playthrough', '0 online trophies', 'No mission replay — keep chapter saves', 'Cheats disable trophies']) {
-    facts.append(el('span', 'fact', fact));
-  }
-  intro.append(facts);
-
-  const steps = document.getElementById('roadmapSteps');
-  steps.replaceChildren();
-  for (const step of ROADMAP_STEPS) {
-    const item = el('li', 'roadmap-step');
-    item.append(el('div', 'step-time', `Step ${step.step} · ${step.time}`));
-    item.append(el('h3', null, step.title));
-    item.append(el('p', null, step.body));
-    const list = el('ul');
-    for (const b of step.bullets) list.append(el('li', null, b));
-    item.append(list);
-    const stageTrophies = trophies.filter((t) => t.roadmap === step.step);
-    const earned = stageTrophies.filter((t) => progress.earned.has(t.id)).length;
-    item.append(el('p', 'step-progress', `${earned} of ${stageTrophies.length} trophies in this step earned`));
-    steps.append(item);
+    pane.appendChild(el('h3', 'detail-sub', 'Guide'));
+    pane.appendChild(el('p', 'detail-guide', displayGuide(trophy, state)));
   }
 
-  const notes = document.getElementById('roadmapNotes');
-  notes.replaceChildren();
-  notes.append(el('h3', null, 'Before you start'));
-  const list = el('ul');
-  for (const note of [
-    'Keep a manual save at the start and end of every chapter — missions cannot be replayed.',
-    'Do the Chapter 1 meditation before leaving Chapter 1 (Missables tab). It is the only trophy the published guides say can be missed.',
-    'Scan vehicles and study animals from the first hour: the checklist counts 200 of 277 vehicles and 100 of 255 animals, and progress made during the story already counts.',
-    'The 100% checklist appears only after the story, under Progress > Stats — but everything you do before the ending already counts toward it.',
-  ]) list.append(el('li', null, note));
-  notes.append(list);
-}
+  if (trophy.target && !masked) {
+    const counter = el('div', 'detail-counter');
+    counter.appendChild(el('span', 'counter-label',
+      `Your progress: ${counterValue(state, trophy.id)} / ${trophy.target} ${trophy.targetUnit || ''}`.trim()));
+    const minus = el('button', 'counter-btn', '−');
+    minus.type = 'button';
+    minus.addEventListener('click', () => callbacks.onCounter(trophy.id, counterValue(state, trophy.id) - 1));
+    const plus = el('button', 'counter-btn', '+');
+    plus.type = 'button';
+    plus.addEventListener('click', () => callbacks.onCounter(trophy.id, counterValue(state, trophy.id) + 1));
+    const input = el('input', 'counter-input');
+    input.type = 'number';
+    input.min = '0';
+    input.max = String(trophy.target);
+    input.value = String(counterValue(state, trophy.id));
+    input.setAttribute('aria-label', `Progress toward ${trophy.target} ${trophy.targetUnit || ''}`);
+    input.addEventListener('change', () => callbacks.onCounter(trophy.id, Number(input.value)));
+    counter.appendChild(minus);
+    counter.appendChild(input);
+    counter.appendChild(plus);
+    pane.appendChild(counter);
+  }
 
-export function renderMissables(trophies, progress) {
-  const box = document.getElementById('missableList');
-  box.replaceChildren();
-  const missable = trophies.filter((t) => t.missable);
-  for (const t of missable) {
-    const card = el('div', 'missable-card');
-    card.append(el('div', 'missable-flag', '⚠ The only missable trophy'));
-    card.append(el('h2', null, t.name));
-    card.append(el('p', 'detail-desc', t.description));
-    card.append(el('p', null, t.guide));
-    const sources = el('ul', 'source-list');
-    for (const s of t.sources) {
+  const earnedBtn = el('button', 'earned-btn', isEarned(state, trophy.id) ? '✓ Earned — click to unmark' : 'Mark as earned');
+  earnedBtn.type = 'button';
+  earnedBtn.addEventListener('click', () => callbacks.onToggleEarned(trophy.id));
+  pane.appendChild(earnedBtn);
+
+  if (!masked) {
+    pane.appendChild(el('h3', 'detail-sub', 'Sources'));
+    const list = el('ul', 'source-list');
+    for (const source of trophy.sources || []) {
       const item = el('li');
-      const link = document.createElement('a');
-      link.href = s.url;
+      const link = el('a', null, source.name);
+      link.href = source.url;
       link.target = '_blank';
       link.rel = 'noopener';
-      link.textContent = s.name;
-      item.append(link);
-      sources.append(item);
+      item.appendChild(link);
+      list.appendChild(item);
     }
-    card.append(el('h3', null, 'Sources'));
-    card.append(sources);
-    card.append(el('p', null, progress.earned.has(t.id) ? '✓ Earned — you are safe.' : 'Not earned yet — do the Chapter 1 meditation before you leave Chapter 1.'));
-    box.append(card);
+    pane.appendChild(list);
   }
-  const safe = document.getElementById('safeNote');
-  safe.replaceChildren();
-  safe.append(el('h2', null, 'Everything else is safe'));
-  safe.append(el('p', null, 'Every other trophy is confirmed unmissable in the published guides: story trophies pop automatically, free-roam continues after the story, and every quest giver tied to a trophy returns after the ending. PowerPyx and GTABase agree there is only the one possible missable above — though the game is days old, so this page follows the published guides as they are updated.'));
-  safe.append(el('p', null, 'Still, the cheap insurance costs nothing: keep a manual save at the start and end of every chapter. With no mission replay, a chapter save is the only way back.'));
+}
+
+export function setView(name) {
+  for (const tab of document.querySelectorAll('.tab')) {
+    tab.classList.toggle('is-active', tab.dataset.view === name);
+  }
+  document.getElementById('checklist-view').hidden = name !== 'checklist';
+  document.getElementById('toolbar').hidden = name !== 'checklist';
+  document.getElementById('roadmap-view').hidden = name !== 'roadmap';
+  document.getElementById('missables-view').hidden = name !== 'missables';
+  document.getElementById('detail-pane').hidden = name !== 'checklist';
+  document.querySelector('.content').dataset.view = name;
 }

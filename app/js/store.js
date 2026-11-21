@@ -1,72 +1,147 @@
-// Progress store: earned trophies, per-trophy counters for PSN targets, and the
-// spoiler setting. Everything lives in localStorage; nothing leaves the browser.
-export const PROGRESS_KEY = 'leonida-legend-progress-v1';
-export const SETTINGS_KEY = 'leonida-legend-settings-v1';
+// store.js — progress state for Leonida Legend.
+// Everything lives in localStorage under one key; demo seeds (?demo=1 / ?demo=2)
+// only fill an in-memory preview and never overwrite a real save.
 
-// The demo seed used by ?demo=1 (and by the screenshot views): 13 earned
-// trophies, a mix of story, activities and odd jobs, like a real mid-story save.
-export const DEMO_EARNED = [2, 3, 4, 8, 16, 20, 21, 33, 36, 46, 51, 53, 55];
+export const STORAGE_KEY = 'leonida-legend-v1';
 
-// ?demo=2: the same size of save, but with no story trophy earned — so the
-// spoiler setting has story trophies left to hide (used by the spoiler shot).
-export const DEMO_EARNED_NO_STORY = [15, 16, 17, 18, 19, 20, 21, 30, 31, 32, 33, 35, 36];
+// A mid-game save: story through Chapter 3 plus a few activities.
+export const DEMO_ONE_EARNED = [
+  'just-like-paradise', 'paradise-lost', 'tits-ass-drug-money', 'vice-city-baby',
+  'trust', 'baited-my-tackle', 'stick-fiddler', 'master-of-none', 'whip-it-good',
+  'earn-cash-not-kudos', 'catch-me-if-you-can', 'challenging-tank',
+  'lets-go-bowling', 'personal-best',
+];
+export const DEMO_ONE_COUNTERS = {
+  'cunning-stunts': 187,
+  'you-wainker': 64,
+  'one-last-thing': 41,
+  'dime-on-the-dollar': 132000,
+};
 
-function readJson(key, fallback) {
+// A late-game save: story done, cleanup half finished.
+export const DEMO_TWO_EARNED = [
+  ...DEMO_ONE_EARNED,
+  'top-of-the-world-ma', 'you-gotta-know-when-to-get-off', 'break-the-bank',
+  'family-matters', 'dwnfall', 'hi-jacked', 'road-to-rehabilitation',
+  'this-was-no-boat-accident', 'the-lone-rider', 'supply-and-demand',
+  'spin-on-this', 'fair-game', 'top-fun', 'the-shootist', 'hot-together',
+  'sneakthief', 'a-classic-blitz-play', 'the-goodtime-state', 'pest-control',
+  'positive-mental-attitude', 'dont-touch-my-deck', 'on-the-spot',
+];
+export const DEMO_TWO_COUNTERS = {
+  ...DEMO_ONE_COUNTERS,
+  'cunning-stunts': 250,
+  'you-wainker': 100,
+  'one-last-thing': 50,
+  'whip-it-good': 100,
+  'dime-on-the-dollar': 250000,
+  'treat-yo-self': 100000,
+  'strangers-and-freaks': 8,
+  'maximum-withdrawal': 5,
+};
+
+export function emptyState() {
+  return { earned: [], counters: {}, spoiler: true, selectedId: null };
+}
+
+export function loadState() {
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : fallback;
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return emptyState();
+    const parsed = JSON.parse(raw);
+    return {
+      earned: Array.isArray(parsed.earned) ? parsed.earned.filter((x) => typeof x === 'string') : [],
+      counters: parsed.counters && typeof parsed.counters === 'object' ? parsed.counters : {},
+      spoiler: parsed.spoiler !== false,
+      selectedId: typeof parsed.selectedId === 'string' ? parsed.selectedId : null,
+    };
   } catch {
-    return fallback;
+    return emptyState();
   }
 }
 
-export function loadProgress() {
-  const saved = readJson(PROGRESS_KEY, null);
-  return {
-    earned: new Set(Array.isArray(saved?.earned) ? saved.earned : []),
-    counters: saved?.counters && typeof saved.counters === 'object' ? saved.counters : {},
+export function saveState(state) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      earned: state.earned,
+      counters: state.counters,
+      spoiler: state.spoiler,
+      selectedId: state.selectedId,
+    }));
+  } catch {
+    // Private mode or full storage: the page still works for the session.
+  }
+}
+
+export function isEarned(state, id) {
+  return state.earned.includes(id);
+}
+
+export function toggleEarned(state, id) {
+  const at = state.earned.indexOf(id);
+  if (at >= 0) state.earned.splice(at, 1);
+  else state.earned.push(id);
+  saveState(state);
+  return state;
+}
+
+export function counterValue(state, id) {
+  const v = state.counters[id];
+  return typeof v === 'number' && Number.isFinite(v) && v > 0 ? v : 0;
+}
+
+export function setCounter(state, id, value, target) {
+  const clamped = Math.max(0, Math.min(target || 0, Math.floor(value) || 0));
+  if (clamped === 0) delete state.counters[id];
+  else state.counters[id] = clamped;
+  saveState(state);
+  return state;
+}
+
+// Demo seeds: a preview layered over the real save, clearly labelled.
+export function demoState(seed) {
+  if (seed === '2') {
+    return {
+      earned: [...DEMO_TWO_EARNED],
+      counters: { ...DEMO_TWO_COUNTERS },
+      spoiler: true,
+      selectedId: 'top-fun',
+      demo: 2,
+    };
+  }
+  if (seed === '1') {
+    return {
+      earned: [...DEMO_ONE_EARNED],
+      counters: { ...DEMO_ONE_COUNTERS },
+      spoiler: true,
+      selectedId: 'top-fun',
+      demo: 1,
+    };
+  }
+  return null;
+}
+
+export function exportBlob(state) {
+  const payload = {
+    app: 'leonida-legend',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    earned: state.earned,
+    counters: state.counters,
+    spoiler: state.spoiler,
   };
+  return new Blob([`${JSON.stringify(payload, null, 2)}\n`], { type: 'application/json' });
 }
 
-export function saveProgress(progress) {
-  localStorage.setItem(
-    PROGRESS_KEY,
-    JSON.stringify({ earned: [...progress.earned], counters: progress.counters }),
-  );
-}
-
-export function loadSettings() {
-  const saved = readJson(SETTINGS_KEY, null);
-  return { spoiler: saved?.spoiler === true };
-}
-
-export function saveSettings(settings) {
-  localStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
-}
-
-export function serializeProgress(progress) {
-  return JSON.stringify(
-    { app: 'leonida-legend', game: 'Grand Theft Auto VI', exportedAt: new Date().toISOString(), earned: [...progress.earned].sort((a, b) => a - b), counters: progress.counters },
-    null,
-    2,
-  );
-}
-
-// Parses an imported file's text. Returns { earned, counters } or throws.
-export function parseImported(text) {
-  const data = JSON.parse(text);
-  const ids = Array.isArray(data) ? data : data.earned;
-  if (!Array.isArray(ids)) throw new Error('No earned list found in that file.');
-  const earned = new Set(ids.map(Number).filter((n) => Number.isInteger(n) && n >= 1 && n <= 55));
-  const counters = data.counters && typeof data.counters === 'object' ? data.counters : {};
-  return { earned, counters };
-}
-
-export function download(filename, text) {
-  const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = filename;
-  a.click();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+export function parseImport(text) {
+  const parsed = JSON.parse(text);
+  if (!parsed || typeof parsed !== 'object') throw new Error('not an object');
+  const earned = Array.isArray(parsed.earned) ? parsed.earned.filter((x) => typeof x === 'string') : [];
+  const counters = parsed.counters && typeof parsed.counters === 'object' ? parsed.counters : {};
+  return {
+    earned,
+    counters,
+    spoiler: parsed.spoiler !== false,
+    selectedId: null,
+  };
 }
