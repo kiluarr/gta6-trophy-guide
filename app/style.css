@@ -303,10 +303,14 @@ body {
   background: #3d2f05;
   border: 1px solid var(--gold);
   color: #ffe08a;
-  border-radius: var(--radius);
-  padding: 10px 14px;
-  margin: 0 0 12px;
-  font-size: 13px;
+  border-radius: 4px;
+  padding: 2px 10px;
+  margin: 0 0 8px;
+  font-size: 11px;
+  line-height: 1.4;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .foot { color: var(--muted); font-size: 12px; margin-top: 24px; }

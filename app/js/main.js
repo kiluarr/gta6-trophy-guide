@@ -40,7 +40,7 @@ export async function boot() {
   if (demo) {
     const banner = document.createElement('p');
     banner.className = 'demo-banner';
-    banner.textContent = `Demo save ${demo.demo} — sample progress for screenshots. Your real save is untouched; add ?demo=0 or clear the address bar to leave the demo.`;
+    banner.textContent = `Demo save ${demo.demo} — sample progress. Your real save is untouched.`;
     document.querySelector('.layout').prepend(banner);
   }
   if (!state.selectedId || !trophies.some((t) => t.id === state.selectedId)) {
