@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Leonida Legend — GTA VI Trophy Guide &amp; Tracker</title>
+<meta name="description" content="Offline guide and tracker for all 55 PlayStation 5 trophies of Grand Theft Auto VI: official names, descriptions and grades, a roadmap to the platinum, missable warnings, and a guide to each trophy that cites its sources.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="top">
+  <div class="brand">
+    <div class="mark" aria-hidden="true">LL</div>
+    <div class="brand-text">
+      <h1>Leonida Legend</h1>
+      <p class="sub">GTA VI &middot; PlayStation 5 trophy guide &amp; tracker &mdash; all 55 trophies, works offline</p>
+    </div>
+  </div>
+  <div class="progress" id="progressBox" aria-live="polite">
+    <div class="progress-count"><strong id="earnedCount">0</strong><span> / 55 earned</span></div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill" style="width:0%"></div></div>
+    <p class="progress-grades" id="gradeCounts"></p>
+  </div>
+</header>
+
+<nav class="tabs" aria-label="Views">
+  <div class="tab-buttons" role="tablist">
+    <button type="button" class="tab active" data-view="checklist" role="tab" aria-selected="true">Checklist</button>
+    <button type="button" class="tab" data-view="roadmap" role="tab" aria-selected="false">Roadmap to platinum</button>
+    <button type="button" class="tab" data-view="missables" role="tab" aria-selected="false">Missables</button>
+  </div>
+  <div class="tab-tools">
+    <label class="spoiler-toggle"><input type="checkbox" id="spoilerToggle"> Hide story spoilers</label>
+    <button type="button" id="exportBtn" class="btn">Export progress</button>
+    <label class="btn import-btn">Import progress <input type="file" id="importFile" accept="application/json,.json" hidden></label>
+  </div>
+</nav>
+
+<main>
+  <section id="view-checklist" class="view" aria-label="Trophy checklist">
+    <div class="controls">
+      <label class="search">Search <input type="search" id="searchBox" placeholder="Trophy name or description&hellip;" autocomplete="off"></label>
+      <label>Kind
+        <select id="kindFilter">
+          <option value="all">All kinds</option>
+          <option value="story">Story</option>
+          <option value="side">Side quests</option>
+          <option value="collectible">Collectibles</option>
+          <option value="activity">Activities</option>
+          <option value="robbery">Robberies</option>
+          <option value="exploration">Exploration</option>
+          <option value="money">Money</option>
+          <option value="oddjob">Odd jobs</option>
+          <option value="platinum">Platinum</option>
+          <option value="completion">100% completion</option>
+        </select>
+      </label>
+      <label>Grade
+        <select id="gradeFilter">
+          <option value="all">All grades</option>
+          <option value="platinum">Platinum</option>
+          <option value="gold">Gold</option>
+          <option value="silver">Silver</option>
+          <option value="bronze">Bronze</option>
+        </select>
+      </label>
+      <label>Status
+        <select id="statusFilter">
+          <option value="all">Earned &amp; remaining</option>
+          <option value="earned">Earned only</option>
+          <option value="remaining">Remaining only</option>
+        </select>
+      </label>
+      <label class="missable-only"><input type="checkbox" id="missableOnly"> Missable only</label>
+      <span class="result-count" id="resultCount"></span>
+    </div>
+    <div class="nextup" id="nextUp"></div>
+    <div class="layout">
+      <div class="list-col">
+        <ul class="trophy-list" id="trophyList"></ul>
+        <p class="empty" id="emptyMsg" hidden>No trophies match these filters. Clear the search or widen a filter.</p>
+      </div>
+      <aside class="detail-col" id="detailPane" aria-label="Trophy guide"></aside>
+    </div>
+  </section>
+
+  <section id="view-roadmap" class="view" hidden aria-label="Roadmap to the platinum">
+    <div class="roadmap-intro" id="roadmapIntro"></div>
+    <ol class="roadmap-steps" id="roadmapSteps"></ol>
+    <div class="roadmap-notes" id="roadmapNotes"></div>
+  </section>
+
+  <section id="view-missables" class="view" hidden aria-label="Missable trophies">
+    <div id="missableList"></div>
+    <div class="safe-note" id="safeNote"></div>
+  </section>
+</main>
+
+<footer>
+  <p><strong>Sources.</strong> Trophy names, descriptions and grades are the official PlayStation 5 list as published by Exophase and cross-checked with PSNProfiles and TrueAchievements (18 Nov 2026). Methods, times and the roadmap follow PowerPyx&rsquo;s GTA 6 Trophy Guide &amp; Roadmap, with counts from PSNProfiles and GameMapa. Every trophy&rsquo;s guide names its sources beside it.</p>
+  <p><strong>Honest where the game is new.</strong> GTA VI released 19 Nov 2026. Where no published guide has pinned a location or trigger yet, the guide says so instead of guessing — check the cited guide as players map it. Five trophies are still unsolved in every published guide; they are marked as such.</p>
+  <p><strong>Offline.</strong> This guide is static files only. Your progress lives in this browser (localStorage); nothing is sent anywhere. Export it to keep a backup.</p>
+  <p class="fineprint">An unofficial fan guide. Grand Theft Auto and GTA are trademarks of Take-Two Interactive; this guide uses no Rockstar artwork, logos or game screenshots. Trophy data: <a href="https://www.exophase.com/game/grand-theft-auto-vi-psn/trophies/">Exophase</a> · <a href="https://psnprofiles.com/trophies/43531-grand-theft-auto-vi">PSNProfiles</a> · <a href="https://www.powerpyx.com/gta-6-grand-theft-auto-vI-trophy-guide-roadmap/">PowerPyx</a> · <a href="https://www.planetgta6.com/en/gta-6-trophies/">PlanetGTA6</a></p>
+</footer>
+
+<script type="module" src="js/main.js"></script>
+</body>
+</html>
